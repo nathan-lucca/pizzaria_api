@@ -3,7 +3,6 @@ package br.com.pizzaria.controller;
 import br.com.pizzaria.entity.Pizza;
 import br.com.pizzaria.repository.PizzaRepository;
 import br.com.pizzaria.util.ImageUtil;
-import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -29,38 +28,6 @@ public class PizzaController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pizza não encontrada."));
 
         return ResponseEntity.status(HttpStatus.OK).body(ImageUtil.convertBlobToBase64PNG(pizza.getImagemPizza()));
-    }
-
-    @PostMapping("/cadastro")
-    public ResponseEntity<?> cadastrarPizza(@Valid @RequestBody Pizza pizza) {
-        if (pizza.getNomePizza() == null || pizza.getNomePizza().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Por favor, insira o nome da pizza.");
-        }
-
-        if (pizza.getDescricaoPizza() == null || pizza.getDescricaoPizza().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Por favor, insira a descrição da pizza.");
-        }
-
-        if (pizza.getImagemPizza() == null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Por favor, insira a imagem da pizza.");
-        }
-
-        if (pizza.getValorPizza() == null || pizza.getValorPizza().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Por favor, insira o valor da pizza.");
-        }
-
-        try {
-            pizzaRepository.save(pizza);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "Pizza cadastrada com sucesso.");
-            response.put("dados", pizza);
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erro ao cadastrar pizza.", e);
-        }
     }
 
     @GetMapping("/listar")
