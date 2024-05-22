@@ -10,6 +10,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import br.com.pizzaria.entity.User;
 import br.com.pizzaria.repository.UserRepository;
+import br.com.pizzaria.services.UserService;
+import br.com.pizzaria.validates.UserValidationService;
 import br.com.pizzaria.model.UserDTO;
 
 import java.util.HashMap;
@@ -22,40 +24,18 @@ public class UserController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private UserValidationService userValidationService;
+
     @PostMapping("/cadastro")
     public ResponseEntity<?> cadastrarUsuario(@Valid @RequestBody UserDTO usuarioDTO) {
-        if (usuarioDTO.getNomeUsers() == null || usuarioDTO.getNomeUsers().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Por favor, insira seu Nome.");
-        }
-
-        if (usuarioDTO.getCpfUsers() == null || usuarioDTO.getCpfUsers().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Por favor, insira seu CPF.");
-        }
-
-        if (usuarioDTO.getSenhaUsers() == null || usuarioDTO.getSenhaUsers().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Por favor, insira sua Senha.");
-        }
-
-        if (usuarioDTO.getRepetirSenhaUsers() == null || usuarioDTO.getRepetirSenhaUsers().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Por favor, repita sua Senha.");
-        }
-
-        if (userRepository.existsByCpfUsers(usuarioDTO.getCpfUsers())) {
-            throw new ResponseStatusException(HttpStatus.FOUND, "CPF já cadastrado. Por favor, insira um CPF diferente.");
-        }
-
-        if (!usuarioDTO.getSenhaUsers().equals(usuarioDTO.getRepetirSenhaUsers())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "As senhas não coincidem.");
-        }
-
-        // Convertendo o DTO para uma entidade
-        User usuario = new User();
-        usuario.setNomeUsers(usuarioDTO.getNomeUsers());
-        usuario.setCpfUsers(usuarioDTO.getCpfUsers());
-        usuario.setSenhaUsers(usuarioDTO.getSenhaUsers());
+        userValidationService.validateCadastro(usuarioDTO);
 
         try {
-            userRepository.save(usuario);
+            User usuario = userService.saveUser(usuarioDTO);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -70,28 +50,26 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<?> logarUsuario(@Valid @RequestBody UserDTO usuarioDTO) {
-        if (usuarioDTO.getCpfUsers() == null || usuarioDTO.getCpfUsers().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Por favor, insira seu CPF.");
-        }
+        userValidationService.validateLogin(usuarioDTO);
 
-        if (usuarioDTO.getSenhaUsers() == null || usuarioDTO.getSenhaUsers().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Por favor, insira sua Senha.");
-        }
-
-        Optional<User> usuarioOptional = userRepository.findByCpfUsersAndSenhaUsers(usuarioDTO.getCpfUsers(), usuarioDTO.getSenhaUsers());
+        Optional<User> usuarioOptional = userService.loginUser(usuarioDTO);
         if (!usuarioOptional.isPresent()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                     "CPF ou Senha inválidos. Por favor, insira um CPF e Senha válidos.");
         }
 
-        User usuario = usuarioOptional.get();
+        try {
+            User usuario = usuarioOptional.get();
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "Você realizou login com sucesso.");
-        response.put("dados", usuario);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Você realizou login com sucesso.");
+            response.put("dados", usuario);
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erro ao logar usuário.", e);
+        }
     }
 
     @GetMapping("/listar")
@@ -116,27 +94,19 @@ public class UserController {
 
     @PutMapping("/trocar_senha")
     public ResponseEntity<?> trocarSenhaUsuario(@Valid @RequestBody UserDTO usuarioDTO) {
-        if (!userRepository.existsByCpfUsers(usuarioDTO.getCpfUsers())) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado.");
+        userValidationService.validateTrocaSenha(usuarioDTO);
+
+        try {
+            User usuario = userService.trocarSenhaUser(usuarioDTO);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Sua senha foi alterada com sucesso.");
+            response.put("dados", usuario);
+
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erro ao alterar senha.", e);
         }
-
-        if (usuarioDTO.getSenhaUsers() == null || usuarioDTO.getSenhaUsers().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Por favor, insira sua nova Senha.");
-        }
-
-        if (usuarioDTO.getRepetirSenhaUsers() == null || usuarioDTO.getRepetirSenhaUsers().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Por favor, repita sua nova Senha.");
-        }
-
-        if (!usuarioDTO.getSenhaUsers().equals(usuarioDTO.getRepetirSenhaUsers())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "As senhas não coincidem.");
-        }
-
-        // Convertendo o DTO para uma entidade
-        User usuario = userRepository.findByCpfUsers(usuarioDTO.getCpfUsers()).get();
-        usuario.setSenhaUsers(usuarioDTO.getSenhaUsers());
-        userRepository.save(usuario);
-
-        return ResponseEntity.status(HttpStatus.OK).body("Sua senha foi alterada com sucesso.");
     }
 }
