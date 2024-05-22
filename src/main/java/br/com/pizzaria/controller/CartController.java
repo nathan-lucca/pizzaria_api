@@ -7,81 +7,30 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import br.com.pizzaria.entity.Cart;
 import br.com.pizzaria.entity.CartItem;
-import br.com.pizzaria.entity.Pizza;
-import br.com.pizzaria.repository.CartRepository;
-import br.com.pizzaria.repository.PizzaRepository;
-import br.com.pizzaria.repository.CartItemRepository;
 import br.com.pizzaria.model.CartDTO;
-import br.com.pizzaria.repository.UserRepository;
-import br.com.pizzaria.entity.User;
+import br.com.pizzaria.services.CartService;
+import br.com.pizzaria.validates.CartValidationService;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/cart")
 public class CartController {
     @Autowired
-    private CartRepository cartRepository;
+    private CartService cartService;
 
     @Autowired
-    private CartItemRepository cartItemRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private PizzaRepository pizzaRepository;
+    private CartValidationService cartValidationService;
 
     @PostMapping("/cadastro")
     public ResponseEntity<?> cadastrarCarrinho(@Valid @RequestBody CartDTO cartDTO) {
-        // Verificar se o usuário existe
-        Optional<User> usuario = userRepository.findById(cartDTO.getIdUsers());
-        if (!usuario.isPresent()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado.");
-        }
-
-        // Procurar um carrinho existente para o usuário
-        Cart cart = cartRepository.findByIdUsers(cartDTO.getIdUsers()).orElse(new Cart());
-        if (cart.getIdUsers() == null) {
-            cart.setIdUsers(cartDTO.getIdUsers());
-        }
-
-        // Adicionar o item ao carrinho
-        CartItem cartItem = new CartItem();
-
-        // Buscar a pizza pelo ID
-        Optional<Pizza> pizzaOpt = pizzaRepository.findById(cartDTO.getIdPizza());
-
-        if (!pizzaOpt.isPresent()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pizza não encontrada.");
-        }
-
-        Pizza pizza = pizzaOpt.get();
-
-        cartItem.setPizza(pizza);
-        cartItem.setTamanhoPizza(cartDTO.getTamanhoPizza());
-        cartItem.setQuantPizza(cartDTO.getQuantPizza());
-        cartItem.setValortotalItem(cartDTO.getValorTotalCart());
-        cartItem.setCart(cart);
+        cartValidationService.validateCart(cartDTO);
 
         try {
-            // Adicionar o item ao carrinho existente
-            List<CartItem> items = cart.getItems();
-
-            if (items == null) {
-                items = new ArrayList<>();
-            }
-
-            items.add(cartItem);
-            cart.setItems(items);
-
-            cartRepository.save(cart);
+            var cartItem = cartService.addCartItem(cartDTO);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -96,16 +45,11 @@ public class CartController {
 
     @GetMapping("/listar/{userId}")
     public ResponseEntity<?> listarCarrinhoUsuario(@PathVariable("userId") Long userId) {
-        // Verificar se o usuário existe
-        Optional<User> usuario = userRepository.findById(userId);
-        if (!usuario.isPresent()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado.");
-        }
-
         try {
-            List<CartItem> cartItems = cartItemRepository.findAllByCart_IdUsers(userId);
-
+            List<CartItem> cartItems = cartService.listCartItemsByUserId(userId);
             return ResponseEntity.status(HttpStatus.OK).body(cartItems);
+        } catch (ResponseStatusException e) {
+            throw e; // Re-throw to ensure the correct status is returned
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erro ao listar carrinho do usuário.", e);
         }

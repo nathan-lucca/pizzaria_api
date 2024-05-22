@@ -81,13 +81,13 @@ public class UserController {
         }
     }
 
-    @DeleteMapping("/excluir/{id}")
-    public ResponseEntity<?> excluirUsuario(@PathVariable("id") Long id) {
-        if (!userRepository.existsById(id)) {
+    @DeleteMapping("/excluir/{userId}")
+    public ResponseEntity<?> excluirUsuario(@PathVariable("userId") Long userId) {
+        if (!userRepository.existsById(userId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado.");
         }
 
-        userRepository.deleteById(id);
+        userRepository.deleteById(userId);
 
         return ResponseEntity.status(HttpStatus.OK).body("Conta excluída com sucesso.");
     }
