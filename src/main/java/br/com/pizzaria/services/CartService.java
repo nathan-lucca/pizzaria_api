@@ -17,6 +17,7 @@ import br.com.pizzaria.repository.UserRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.lang.Float;
 
 @Service
 public class CartService {
@@ -73,5 +74,34 @@ public class CartService {
         }
 
         return cartItemRepository.findAllByCart_IdUsers(userId);
+    }
+
+    public void removeCartItemSize(Long userId, Long pizzaId, String tamanho) {
+        if (!userRepository.existsById(userId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado.");
+        }
+
+        Cart cart = cartRepository.findByIdUsers(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Carrinho não encontrado."));
+
+        List<CartItem> items = cart.getItems();
+        Optional<CartItem> cartItemOpt = items.stream()
+                .filter(item -> item.getPizza().getIdPizza().equals(pizzaId) && item.getTamanhoPizza().equals(tamanho))
+                .findFirst();
+
+        if (cartItemOpt.isPresent()) {
+            CartItem cartItem = cartItemOpt.get();
+
+            if (cartItem.getQuantPizza() > 1) {
+                cartItem.setQuantPizza(cartItem.getQuantPizza() - 1);
+                cartItem.setValortotalItem(cartItem.getQuantPizza() * Float.parseFloat(cartItem.getPizza().getValorPizza()));
+            } else {
+                items.remove(cartItem);
+            }
+
+            cartRepository.save(cart);
+        } else {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Item não encontrado no carrinho.");
+        }
     }
 }

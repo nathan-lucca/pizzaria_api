@@ -54,4 +54,21 @@ public class CartController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erro ao listar carrinho do usuário.", e);
         }
     }
+
+    @DeleteMapping("/remover/{userId}/{pizzaId}/{tamanho}")
+    public ResponseEntity<?> removerTamanhoPizza(
+            @PathVariable("userId") Long userId,
+            @PathVariable("pizzaId") Long pizzaId,
+            @PathVariable("tamanho") String tamanho) {
+        try {
+            cartService.removeCartItemSize(userId, pizzaId, tamanho);
+            return ResponseEntity.status(HttpStatus.OK).body("Item removido com sucesso.");
+        } catch (ResponseStatusException e) {
+            throw e; // Re-throw to ensure the correct status is returned
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erro ao remover item do carrinho.", e);
+        }
+    }
+
 }
