@@ -23,6 +23,6 @@ public class User {
     @Transient
     private String repetirSenhaUsers;
 
-    @Column(columnDefinition = "LONGBLOB", nullable = true)
+    @Column(nullable = true)
     private byte[] imagemUsers;
 }

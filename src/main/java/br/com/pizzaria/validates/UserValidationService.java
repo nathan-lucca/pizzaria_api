@@ -60,7 +60,7 @@ public class UserValidationService {
 
         Optional<User> user = userRepository.findByCpfUsers(usuarioDTO.getCpfUsers());
 
-        if (user == null || !passwordEncoder.matches(usuarioDTO.getSenhaUsers(), user.get().getSenhaUsers())) {
+        if (!user.isPresent() || !passwordEncoder.matches(usuarioDTO.getSenhaUsers(), user.get().getSenhaUsers())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "CPF ou Senha inválidos.");
         }
     }
