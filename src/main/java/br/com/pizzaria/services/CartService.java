@@ -21,7 +21,6 @@ import java.lang.Float;
 
 @Service
 public class CartService {
-
     @Autowired
     private CartRepository cartRepository;
 
@@ -94,7 +93,8 @@ public class CartService {
 
             if (cartItem.getQuantPizza() > 1) {
                 cartItem.setQuantPizza(cartItem.getQuantPizza() - 1);
-                cartItem.setValortotalItem(cartItem.getQuantPizza() * Float.parseFloat(cartItem.getPizza().getValorPizza()));
+                cartItem.setValortotalItem(
+                        cartItem.getQuantPizza() * Float.parseFloat(cartItem.getPizza().getValorPizza()));
             } else {
                 items.remove(cartItem);
             }

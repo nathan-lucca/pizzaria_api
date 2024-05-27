@@ -47,9 +47,10 @@ public class CartController {
     public ResponseEntity<?> listarCarrinhoUsuario(@PathVariable("userId") Long userId) {
         try {
             List<CartItem> cartItems = cartService.listCartItemsByUserId(userId);
+
             return ResponseEntity.status(HttpStatus.OK).body(cartItems);
         } catch (ResponseStatusException e) {
-            throw e; // Re-throw to ensure the correct status is returned
+            throw e;
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erro ao listar carrinho do usuário.", e);
         }
@@ -62,11 +63,13 @@ public class CartController {
             @PathVariable("tamanho") String tamanho) {
         try {
             cartService.removeCartItemSize(userId, pizzaId, tamanho);
+
             return ResponseEntity.status(HttpStatus.OK).body("Item removido com sucesso.");
         } catch (ResponseStatusException e) {
-            throw e; // Re-throw to ensure the correct status is returned
+            throw e;
         } catch (Exception e) {
             System.out.println(e.getMessage());
+
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erro ao remover item do carrinho.", e);
         }
     }

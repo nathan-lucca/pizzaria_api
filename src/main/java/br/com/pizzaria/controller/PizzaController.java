@@ -23,6 +23,7 @@ public class PizzaController {
     @GetMapping("/imagem/{idPizza}")
     public ResponseEntity<?> getImagemPizza(@PathVariable Long idPizza) {
         Pizza pizza = pizzaValidationService.validateGetImagemPizza(idPizza);
+
         return ResponseEntity.status(HttpStatus.OK).body(ImageUtil.convertBlobToBase64PNG(pizza.getImagemPizza()));
     }
 

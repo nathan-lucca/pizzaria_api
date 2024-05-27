@@ -109,4 +109,27 @@ public class UserController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erro ao alterar senha.", e);
         }
     }
+
+    @PutMapping("/trocar_imagem/{userId}")
+    public ResponseEntity<?> trocarImagemUsuario(@PathVariable("userId") Long userId,
+            @Valid @RequestBody Map<String, String> request) {
+        try {
+            String imagemBase64 = request.get("imagem");
+
+            User usuario = userService.trocarImagemUser(userId, imagemBase64);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Imagem alterada com sucesso.");
+            response.put("dados", usuario);
+
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erro ao alterar imagem do usuário.", e);
+        }
+    }
 }

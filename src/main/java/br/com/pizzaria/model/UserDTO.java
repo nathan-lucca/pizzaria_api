@@ -8,4 +8,5 @@ public class UserDTO {
     private String cpfUsers;
     private String senhaUsers;
     private String repetirSenhaUsers;
+    private byte[] imagemUsers;
 }

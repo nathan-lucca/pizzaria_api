@@ -1,9 +1,13 @@
 package br.com.pizzaria.services;
 
+import java.util.Base64;
 import java.util.Optional;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 import br.com.pizzaria.entity.User;
 import br.com.pizzaria.repository.UserRepository;
@@ -45,5 +49,20 @@ public class UserService {
         usuario.setSenhaUsers(passwordEncoder.encode(usuarioDTO.getSenhaUsers()));
 
         return userRepository.save(usuario);
+    }
+
+    public User trocarImagemUser(Long userId, String imagemBase64) {
+        User usuario = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
+
+        if (StringUtils.hasText(imagemBase64)) {
+            byte[] imagemBytes = Base64.getDecoder().decode(imagemBase64);
+
+            usuario.setImagemUsers(imagemBytes);
+
+            return userRepository.save(usuario);
+        } else {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Imagem inválida.");
+        }
     }
 }
