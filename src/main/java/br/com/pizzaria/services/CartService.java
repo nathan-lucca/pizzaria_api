@@ -7,10 +7,13 @@ import org.springframework.web.server.ResponseStatusException;
 
 import br.com.pizzaria.entity.Cart;
 import br.com.pizzaria.entity.CartItem;
+import br.com.pizzaria.entity.Orders;
+import br.com.pizzaria.entity.OrderItem;
 import br.com.pizzaria.entity.Pizza;
 import br.com.pizzaria.model.CartDTO;
 import br.com.pizzaria.repository.CartItemRepository;
 import br.com.pizzaria.repository.CartRepository;
+import br.com.pizzaria.repository.OrdersRepository;
 import br.com.pizzaria.repository.PizzaRepository;
 import br.com.pizzaria.repository.UserRepository;
 
@@ -18,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.lang.Float;
+import java.time.LocalDate;
 
 @Service
 public class CartService {
@@ -32,6 +36,9 @@ public class CartService {
 
     @Autowired
     private PizzaRepository pizzaRepository;
+
+    @Autowired
+    private OrdersRepository orderRepository;
 
     public CartItem addCartItem(CartDTO cartDTO) {
         if (!userRepository.existsById(cartDTO.getIdUsers())) {
@@ -64,6 +71,34 @@ public class CartService {
         cart.setItems(items);
 
         cartRepository.save(cart);
+
+        // Adicionar o item no pedido (order)
+        Orders order = orderRepository.findByIdUsersAndStatusPedido(cartDTO.getIdUsers(), "Pendente")
+                .orElseGet(() -> {
+                    Orders newOrder = new Orders();
+                    newOrder.setIdUsers(cartDTO.getIdUsers());
+                    newOrder.setDataPedido(LocalDate.now());
+                    newOrder.setStatusPedido("Pendente");
+
+                    return orderRepository.save(newOrder);
+                });
+
+        OrderItem orderItem = new OrderItem();
+        orderItem.setOrders(order);
+        orderItem.setPizza(pizza);
+        orderItem.setTamanhoPizza(cartDTO.getTamanhoPizza());
+        orderItem.setQuantPizza(cartDTO.getQuantPizza());
+        orderItem.setValortotalItem(cartDTO.getValorTotalCart());
+
+        List<OrderItem> orderItems = order.getOrderItems();
+        if (orderItems == null) {
+            orderItems = new ArrayList<>();
+        }
+        orderItems.add(orderItem);
+        order.setOrderItems(orderItems);
+
+        orderRepository.save(order);
+
         return cartItem;
     }
 
@@ -100,8 +135,40 @@ public class CartService {
             }
 
             cartRepository.save(cart);
+
+            // Remover o item do pedido (order)
+            Orders order = orderRepository.findByIdUsersAndStatusPedido(userId, "Pendente")
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pedido não encontrado."));
+
+            List<OrderItem> orderItems = order.getOrderItems();
+            Optional<OrderItem> orderItemOpt = orderItems.stream()
+                    .filter(item -> item.getPizza().getIdPizza().equals(pizzaId)
+                            && item.getTamanhoPizza().equals(tamanho))
+                    .findFirst();
+
+            if (orderItemOpt.isPresent()) {
+                OrderItem orderItem = orderItemOpt.get();
+
+                if (orderItem.getQuantPizza() > 1) {
+                    orderItem.setQuantPizza(orderItem.getQuantPizza() - 1);
+                    orderItem.setValortotalItem(
+                            orderItem.getQuantPizza() * Float.parseFloat(orderItem.getPizza().getValorPizza()));
+                } else {
+                    orderItems.remove(orderItem);
+                }
+
+                orderRepository.save(order);
+            }
         } else {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Item não encontrado no carrinho.");
         }
+    }
+
+    public void limparCarrinho(Long userId) {
+        Cart cart = cartRepository.findByIdUsers(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Carrinho não encontrado."));
+
+        cart.clearItems();
+        cartRepository.save(cart);
     }
 }

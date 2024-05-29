@@ -8,7 +8,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import br.com.pizzaria.entity.Cart;
+import br.com.pizzaria.entity.CartItem;
 import br.com.pizzaria.entity.User;
+import br.com.pizzaria.repository.CartItemRepository;
+import br.com.pizzaria.repository.CartRepository;
 import br.com.pizzaria.repository.UserRepository;
 import br.com.pizzaria.services.UserService;
 import br.com.pizzaria.validates.UserValidationService;
@@ -29,6 +33,12 @@ public class UserController {
 
     @Autowired
     private UserValidationService userValidationService;
+
+    @Autowired
+    private CartRepository cartRepository;
+
+    @Autowired
+    private CartItemRepository cartItemRepository;
 
     @PostMapping("/cadastro")
     public ResponseEntity<?> cadastrarUsuario(@Valid @RequestBody UserDTO usuarioDTO) {
@@ -87,7 +97,19 @@ public class UserController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado.");
         }
 
-        userRepository.deleteById(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
+
+        Cart cart = cartRepository.findByIdUsers(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Carrinho não encontrado."));
+
+        for (CartItem item : cart.getItems()) {
+            cartItemRepository.delete(item);
+        }
+
+        cartRepository.delete(cart);
+
+        userRepository.delete(user);
 
         return ResponseEntity.status(HttpStatus.OK).body("Conta excluída com sucesso.");
     }
@@ -115,7 +137,6 @@ public class UserController {
             @Valid @RequestBody Map<String, String> request) {
         try {
             String imagemBase64 = request.get("imagem");
-
             User usuario = userService.trocarImagemUser(userId, imagemBase64);
 
             Map<String, Object> response = new HashMap<>();
@@ -127,8 +148,6 @@ public class UserController {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (Exception e) {
-            System.out.println(e.getMessage());
-
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erro ao alterar imagem do usuário.", e);
         }
     }

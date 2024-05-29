@@ -8,7 +8,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import br.com.pizzaria.entity.CartItem;
+import br.com.pizzaria.entity.Orders;
 import br.com.pizzaria.model.CartDTO;
+import br.com.pizzaria.repository.OrdersRepository;
 import br.com.pizzaria.services.CartService;
 import br.com.pizzaria.validates.CartValidationService;
 
@@ -25,22 +27,40 @@ public class CartController {
     @Autowired
     private CartValidationService cartValidationService;
 
+    @Autowired
+    private OrdersRepository ordersRepository;
+
     @PostMapping("/cadastro")
     public ResponseEntity<?> cadastrarCarrinho(@Valid @RequestBody CartDTO cartDTO) {
-        cartValidationService.validateCart(cartDTO);
-
         try {
-            var cartItem = cartService.addCartItem(cartDTO);
+            cartValidationService.validateCart(cartDTO);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erro na validação do carrinho.", e);
+        }
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "Item adicionado ao carrinho com sucesso.");
-            response.put("dados", cartItem);
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        CartItem cartItem;
+        try {
+            cartItem = cartService.addCartItem(cartDTO);
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erro ao adicionar item ao carrinho.", e);
         }
+
+        Orders order;
+        try {
+            // Obtendo o pedido existente para retornar o ID
+            order = ordersRepository.findByIdUsersAndStatusPedido(cartDTO.getIdUsers(), "Pendente")
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pedido não encontrado."));
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erro ao obter pedido.", e);
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Item adicionado ao carrinho com sucesso.");
+        response.put("orderId", order.getIdOrders());
+        response.put("dados", cartItem);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/listar/{userId}")

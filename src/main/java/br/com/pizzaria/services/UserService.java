@@ -55,14 +55,13 @@ public class UserService {
         User usuario = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
 
-        if (StringUtils.hasText(imagemBase64)) {
-            byte[] imagemBytes = Base64.getDecoder().decode(imagemBase64);
-
-            usuario.setImagemUsers(imagemBytes);
-
-            return userRepository.save(usuario);
-        } else {
+        if (!StringUtils.hasText(imagemBase64)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Imagem inválida.");
         }
+
+        byte[] imagemBytes = Base64.getDecoder().decode(imagemBase64);
+        usuario.setImagemUsers(imagemBytes);
+
+        return userRepository.save(usuario);
     }
 }

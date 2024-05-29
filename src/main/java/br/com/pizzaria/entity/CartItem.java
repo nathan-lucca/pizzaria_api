@@ -21,4 +21,16 @@ public class CartItem {
     private String tamanhoPizza;
     private int quantPizza;
     private float valortotalItem;
+
+    @Override
+    public String toString() {
+        return "CartItem{" +
+                "idCartItem=" + idCartItem +
+                ", id_cart=" + cart.getIdCart() +
+                ", id_pizza=" + pizza.getIdPizza() +
+                ", tamanhoPizza='" + tamanhoPizza + '\'' +
+                ", quantPizza=" + quantPizza +
+                ", valortotalItem=" + valortotalItem +
+                '}';
+    }
 }
